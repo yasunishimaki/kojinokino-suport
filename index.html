@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>就労ナビAI ココマデ — デモ</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="app-header">
+  <div class="brand">
+    <span class="brand-mark">ココマデ</span>
+    <span class="brand-sub">就労ナビAI（デモ版）</span>
+  </div>
+  <nav class="view-tabs" role="tablist">
+    <button id="tab-nav" class="view-tab active" role="tab" aria-selected="true">🧭 本人ナビ</button>
+    <button id="tab-staff" class="view-tab" role="tab" aria-selected="false">🗂 支援員</button>
+  </nav>
+</header>
+
+<!-- ===================== 本人用ナビ画面 ===================== -->
+<main id="view-nav" class="view">
+
+  <div id="away-banner" class="away-banner hidden">
+    <p>🚶 離席中です</p>
+    <button id="btn-return" class="btn btn-big btn-primary">🔙 戻りました</button>
+  </div>
+
+  <section id="nav-main" class="nav-main">
+    <div class="card card-current" aria-live="polite">
+      <p class="card-label">現在の作業</p>
+      <p id="current-step-title" class="current-title">—</p>
+      <p id="current-step-detail" class="current-detail"></p>
+      <div class="step-progress" id="step-progress"></div>
+    </div>
+
+    <div class="card card-next">
+      <p class="card-label">次</p>
+      <p id="next-step-title" class="next-title">—</p>
+    </div>
+
+    <div class="action-row">
+      <button id="btn-done" class="btn btn-big btn-done">✅ 終わった</button>
+      <button id="btn-where" class="btn btn-big btn-where">📍 今どこ?</button>
+      <button id="btn-away" class="btn btn-big btn-away">🚶 離席する</button>
+    </div>
+
+    <div class="ask-area">
+      <p class="ask-hint">🎤 音声でも話しかけられます</p>
+      <div class="ask-row">
+        <button id="btn-mic" class="btn btn-mic" title="音声で質問">🎤</button>
+        <input id="ask-input" type="text" placeholder="質問を入力（例: 何しようとしてたっけ?）" aria-label="質問入力">
+        <button id="btn-ask" class="btn btn-ask">きく</button>
+      </div>
+      <p id="mic-status" class="mic-status" aria-live="polite"></p>
+    </div>
+
+    <div id="response-area" class="response-area hidden" aria-live="polite">
+      <p class="response-label">🤖 ココマデの答え</p>
+      <p id="response-text" class="response-text"></p>
+      <p id="response-source" class="response-source"></p>
+      <button id="btn-replay" class="btn btn-replay">🔊 もう一度聞く</button>
+    </div>
+  </section>
+
+  <div id="demo-bar" class="demo-bar">
+    <span class="demo-badge">DEMO</span>
+    <span id="timer-info" class="timer-info"></span>
+    <button id="btn-ff" class="btn btn-ff">⏩ 10秒早送り</button>
+  </div>
+</main>
+
+<!-- ===================== 支援員用画面 ===================== -->
+<main id="view-staff" class="view hidden">
+  <nav class="staff-tabs">
+    <button class="staff-tab active" data-panel="panel-procedure">📋 手順書登録</button>
+    <button class="staff-tab" data-panel="panel-dashboard">📊 ダッシュボード</button>
+    <button class="staff-tab" data-panel="panel-settings">⚙ 設定</button>
+  </nav>
+
+  <section id="panel-procedure" class="staff-panel">
+    <h2>手順書登録</h2>
+    <label class="field">
+      <span>作業名</span>
+      <input id="work-name" type="text" value="">
+    </label>
+    <table class="step-table">
+      <thead>
+        <tr><th>#</th><th>工程名</th><th>説明</th><th>標準所要時間(分)</th><th>完了の目印</th><th></th></tr>
+      </thead>
+      <tbody id="step-rows"></tbody>
+    </table>
+    <div class="proc-actions">
+      <button id="btn-add-step" class="btn">＋ 工程を追加</button>
+      <button id="btn-start-proc" class="btn btn-primary">▶ この手順書で開始（進捗リセット）</button>
+    </div>
+  </section>
+
+  <section id="panel-dashboard" class="staff-panel hidden">
+    <h2>ダッシュボード（本日）</h2>
+    <div id="alert-area" class="alert-area"></div>
+    <ul id="timeline" class="timeline"></ul>
+  </section>
+
+  <section id="panel-settings" class="staff-panel hidden">
+    <h2>設定</h2>
+    <label class="field">
+      <span>問いかけの猶予係数（標準所要時間の何倍を超えたら聞くか）</span>
+      <input id="set-grace" type="number" step="0.1" min="1" max="3" value="1.2">
+    </label>
+    <label class="field">
+      <span>音声の速さ（0.5=ゆっくり 〜 1.5=はやい）</span>
+      <input id="set-rate" type="range" min="0.5" max="1.5" step="0.1" value="0.9">
+      <span id="rate-value">0.9</span>
+    </label>
+    <label class="field field-check">
+      <input id="set-demo" type="checkbox" checked>
+      <span>デモモード（標準所要時間を「1分 → <input id="set-demo-sec" type="number" min="1" max="60" value="2" class="inline-num"> 秒」に短縮）</span>
+    </label>
+    <p class="note">※ デモモードでは、プレゼン中に待たずに問いかけを発火させられます。画面下の「⏩早送り」も使えます。</p>
+  </section>
+</main>
+
+<!-- ===================== 問いかけモーダル ===================== -->
+<div id="modal-prompt" class="modal hidden" role="dialog" aria-modal="true">
+  <div class="modal-box">
+    <p class="modal-icon">🔔</p>
+    <p id="prompt-question" class="modal-question">工程は終わりましたか?</p>
+    <div class="modal-actions">
+      <button id="prompt-yes" class="btn btn-big btn-done">✅ はい</button>
+      <button id="prompt-notyet" class="btn btn-big btn-where">⏳ まだ</button>
+      <button id="prompt-help" class="btn btn-big btn-away">🙋 ヘルプ</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== 意図宣言モーダル ===================== -->
+<div id="modal-intent" class="modal hidden" role="dialog" aria-modal="true">
+  <div class="modal-box">
+    <p class="modal-icon">🎤</p>
+    <p class="modal-question">一言どうぞ</p>
+    <p class="modal-sub">これから何をするか、ひとこと残してください（例:「見積書を印刷してきます」）</p>
+    <p id="intent-live" class="intent-live"></p>
+    <textarea id="intent-text" rows="2" placeholder="音声が使えないときは、ここに入力できます"></textarea>
+    <div class="modal-actions">
+      <button id="intent-rec" class="btn btn-big btn-mic-lg">🎤 録音する</button>
+      <button id="intent-ok" class="btn btn-big btn-done">✅ OK（保存）</button>
+      <button id="intent-cancel" class="btn btn-big">やめる</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== 中断検知モーダル ===================== -->
+<div id="modal-idle" class="modal hidden" role="dialog" aria-modal="true">
+  <div class="modal-box">
+    <p class="modal-icon">💭</p>
+    <p class="modal-question">作業を中断していますか?</p>
+    <p class="modal-sub">一言残しますか?</p>
+    <div class="modal-actions">
+      <button id="idle-leave" class="btn btn-big btn-away">🎤 一言残す</button>
+      <button id="idle-continue" class="btn btn-big btn-done">✍ 続けています</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
